@@ -30,7 +30,7 @@ display_intvl: 1day
 
 particle_insertion_header: [node, nparts, delay, duration]
 particle_insertion:
-  - [1, 1000, 1day, 1day]
+  - [1, RELEASE_NUM_PLACEHOLDER, 1day, 1day]
 
 # PTM configuration
 ptm_start_date: PTM_START_DATE_PLACEHOLDER

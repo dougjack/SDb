@@ -15,12 +15,12 @@ from datetime import datetime as dt
 ####################################################################################################
 # Constants
 ####################################################################################################
-workingDir = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/programs/TPS"
+workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
 releaseStep_min = 15
 
-javaPath = "C:/Program Files/Java/jdk-26/bin/java"
-jarPath = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/programs/TPS/data/ecoptm_06may26.jar"
+javaPath = "C:/Program Files/Java/jdk-26.0.2/bin/java"
+jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/data/ecoptm_06may26.jar"
 
 processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
 
@@ -41,7 +41,7 @@ os.makedirs(outputDir, exist_ok=True)
 inputCopiesDir = os.path.join(workingDir, "output", "inputCopies")
 os.makedirs(inputCopiesDir, exist_ok=True)
 shutil.copy(os.path.join(workingDir, "runs.xlsx"), os.path.join(inputCopiesDir, "runs.xlsx"))
-shutil.copy(os.path.join(workingDir, "runTPS.py"), os.path.join(inputCopiesDir, "runTPS.py"))
+shutil.copy(os.path.join(workingDir, "runSDb.py"), os.path.join(inputCopiesDir, "runSDb.py"))
 shutil.copy(jarPath, os.path.join(inputCopiesDir, os.path.basename(jarPath)))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_neutrallyBuoyant.yaml"))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_salmon.yaml"))
@@ -62,6 +62,8 @@ for index, row in runs.iterrows():
     if thisAgentType=="particle":
         with open(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml")) as fH:
             thisConfig = fH.read()
+            
+        thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(row["numAgents"]))
     
     else:
         with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon.yaml")) as fH:
