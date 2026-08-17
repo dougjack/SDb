@@ -20,7 +20,7 @@ workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 releaseStep_min = 15
 
 javaPath = "C:/Program Files/Java/jdk-26.0.2/bin/java"
-jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/data/ecoptm_06may26.jar"
+jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/data/ecoptm-v0.0.0-beta.jar"
 
 processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
 
@@ -65,7 +65,15 @@ for index, row in runs.iterrows():
             
         thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(row["numAgents"]))
     
-    else:
+    elif thisAgentType=="surface":
+        with open(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml")) as fH:
+            thisConfig = fH.read()
+            
+        thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(row["numAgents"]))
+        
+        shutil.copy(os.path.join(workingDir, "data", "particle.bhv"), os.path.join(thisOutputDir, "particle.bhv"))
+    
+    elif thisAgentType=="salmon":
         with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon.yaml")) as fH:
             thisConfig = fH.read()
             
@@ -76,6 +84,10 @@ for index, row in runs.iterrows():
         
         thisConfig = thisConfig.replace("RELEASE_DATE_PLACEHOLDER", thisReleaseDate)
         thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(numPerRelease))
+    
+    else:
+        print(f"Invalid agent type: {thisAgentType}")
+        raise RuntimeError()
         
     thisConfig = thisConfig.replace("PTM_START_DATE_PLACEHOLDER", thisStartDate)
     thisConfig = thisConfig.replace("PTM_END_DATE_PLACEHOLDER", thisEndDate)
