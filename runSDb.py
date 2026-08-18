@@ -63,12 +63,14 @@ for index, row in runs.iterrows():
         with open(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml")) as fH:
             thisConfig = fH.read()
             
+        thisConfig = thisConfig.replace("INSERTION_NODE_PLACEHOLDER", str(int(row["insertionNode"])))
         thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(row["numAgents"]))
     
     elif thisAgentType=="surface":
         with open(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml")) as fH:
             thisConfig = fH.read()
             
+        thisConfig = thisConfig.replace("INSERTION_NODE_PLACEHOLDER", str(int(row["insertionNode"])))
         thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(row["numAgents"]))
         
         shutil.copy(os.path.join(workingDir, "data", "particle.bhv"), os.path.join(thisOutputDir, "particle.bhv"))
