@@ -1,6 +1,5 @@
 ---
-tidefile: C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_preprocessed_GZIP.h5
-#tidefile: C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/hist_fc_mss_15_minutes/hist_fc_mss_15_minutes_repack_GZIP.h5
+tidefile: C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_repack_GZIP.h5
 
 simulation_scenario: test simulation scenario
 
