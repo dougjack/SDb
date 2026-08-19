@@ -17,7 +17,7 @@ import time
 ###########################################################################
 workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
-runMissing = True
+runMissing = False
 
 queueName = "ECOPTM"
 AWSconfigFile = "/Users/dougj/Documents/QEDA/AWS/DJackson_config.json"

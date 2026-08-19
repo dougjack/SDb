@@ -13,7 +13,7 @@ import subprocess
 workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
 # Specify the number of instances to launch
-numInstances = 4
+numInstances = 6
 
 # Activate conda environment before running runEPTMscenarios.py
 activateCondaEnv = True
