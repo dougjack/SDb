@@ -39,6 +39,9 @@ releaseStep_min = 15
 javaPath = "C:/Program Files/Java/jdk-26.0.2/bin/java"
 jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/data/ecoptm-v0.0.0-beta.jar"
 
+particleTidefile = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_repack_GZIP.h5"
+salmonTidefile = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_preprocessed_GZIP.h5"
+
 processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
 
 # AWS setup
@@ -97,7 +100,8 @@ shutil.copy(os.path.join(workingDir, "runSDbWorker.py"), os.path.join(inputCopie
 shutil.copy(jarPath, os.path.join(inputCopiesDir, os.path.basename(jarPath)))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_neutrallyBuoyant.yaml"))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_surface.yaml"))
-shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_salmon.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_salmon.yaml"))
+shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_salmon_ND.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_salmon_ND.yaml"))
+shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_salmon_SD.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_salmon_SD.yaml"))
 
 runs = pd.read_excel(os.path.join(workingDir, "runs.xlsx"))
 runIDs = runs["runID"].unique().tolist()
@@ -152,6 +156,7 @@ while runIndex<runs.shape[0]:
             with open(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml")) as fH:
                 thisConfig = fH.read()
                 
+            thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", particleTidefile)
             thisConfig = thisConfig.replace("INSERTION_NODE_PLACEHOLDER", str(int(row["insertionNode"].values[0])))
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(int(row["numAgents"].values[0])))
         
@@ -159,20 +164,31 @@ while runIndex<runs.shape[0]:
             with open(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml")) as fH:
                 thisConfig = fH.read()
                 
+            thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", particleTidefile)
             thisConfig = thisConfig.replace("INSERTION_NODE_PLACEHOLDER", str(int(row["insertionNode"].values[0])))
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(int(row["numAgents"].values[0])))
             
             shutil.copy(os.path.join(workingDir, "data", "particle.bhv"), os.path.join(thisOutputDir, "particle.bhv"))
         
         elif thisAgentType=="salmon":
-            with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon.yaml")) as fH:
-                thisConfig = fH.read()
+            
+            if str(row["insertionNode"])=="Freeport":
+                with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_ND.yaml")) as fH:
+                    thisConfig = fH.read()
+                
+            elif str(row["insertionNode"])=="Vernalis":
+                with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_SD.yaml")) as fH:
+                    thisConfig = fH.read()
+            else:
+                print(f"Invalid insertionNode: {row['insertionNode']}")
+                raise RuntimeError()
                 
             thisReleaseDate = dt.strftime(pd.Timestamp(row["releaseDate"].values[0]), "%m/%d/%Y")
             
             numPlaceholders = thisConfig.count("RELEASE_NUM_PLACEHOLDER")
-            numPerRelease = int(np.ceil(thisNumAgents/numPlaceholders))
             
+            numPerRelease = int(np.ceil(thisNumAgents/numPlaceholders))
+            thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", salmonTidefile)
             thisConfig = thisConfig.replace("RELEASE_DATE_PLACEHOLDER", thisReleaseDate)
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(numPerRelease))
         
