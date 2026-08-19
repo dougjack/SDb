@@ -750,9 +750,9 @@ groups:
   - [J_out_down, chan, (8|54)]
 
 io_file:
-  - type: anim
-    interval: 15min
-    file: ./output/ptm_out.ncd
+#  - type: anim
+#    interval: 15min
+#    file: ./output/ptm_out.ncd
   - type: trace
     interval: none
     file: ./output/trace_southdelta.out

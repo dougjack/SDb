@@ -37,14 +37,14 @@ for iOD in instanceOutputDirs:
     for oD in thisOutputDirs:
         thisDirName = os.path.basename(oD)
     
-    # Delete any existing outputDir for this runID
-    destDir = os.path.join(workingDir, "output", thisDirName)
-    try:
-        shutil.rmtree(destDir)
-    except:
-        pass
-    
-    shutil.copytree(oD, destDir, dirs_exist_ok=True)
+        # Delete any existing outputDir for this runID
+        destDir = os.path.join(workingDir, "output", thisDirName)
+        try:
+            shutil.rmtree(destDir)
+        except:
+            pass
+        
+        shutil.copytree(oD, destDir, dirs_exist_ok=True)
 
 ###########################################################################
 # Find missing outputs
@@ -78,6 +78,7 @@ missingRuns = runs.loc[runs["runID"].isin(missingRunIDs)].copy()
 missingRuns.to_csv(os.path.join(workingDir, "missingRuns.csv"), index=False)
 
 print(f"Number of missing runs: {missingRuns.shape[0]}")
+print(missingRunIDs)
     
     
 
