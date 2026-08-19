@@ -42,7 +42,7 @@ jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/dat
 processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
 
 # AWS setup
-pollAWSjobs = False
+pollAWSjobs = True
 queueName = "ECOPTM"
 AWSconfigFile = "/Users/dougj/Documents/QEDA/AWS/DJackson_config.json"
 sleepTime_sec = 10
@@ -81,14 +81,19 @@ def establishConnection():
 ####################################################################################################
 os.chdir(workingDir)
 
-outputDir = os.path.join(workingDir, f"instance_{instanceNum}", "output")
+instanceDir = os.path.join(workingDir, f"instance_{instanceNum}")
+try:
+    shutil.rmtree(instanceDir)
+except:
+    print(f"Could not remove instance directory: {instanceDir}")
+outputDir = os.path.join(instanceDir, "output")
 os.makedirs(outputDir, exist_ok=True)
 
 # Make copies of inputs
 inputCopiesDir = os.path.join(workingDir, "output", "inputCopies")
 os.makedirs(inputCopiesDir, exist_ok=True)
 shutil.copy(os.path.join(workingDir, "runs.xlsx"), os.path.join(inputCopiesDir, "runs.xlsx"))
-shutil.copy(os.path.join(workingDir, "runSDb.py"), os.path.join(inputCopiesDir, "runSDb.py"))
+shutil.copy(os.path.join(workingDir, "runSDbWorker.py"), os.path.join(inputCopiesDir, "runSDbWorker.py"))
 shutil.copy(jarPath, os.path.join(inputCopiesDir, os.path.basename(jarPath)))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_neutrallyBuoyant.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_neutrallyBuoyant.yaml"))
 shutil.copy(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml"), os.path.join(inputCopiesDir, "ptmConfig_template_surface.yaml"))
@@ -124,7 +129,7 @@ while runIndex<runs.shape[0]:
             fields = message[0].body.split(",")
             message[0].delete()
             
-            row = runs.loc[runs["runID"]==fields[0]]
+            row = runs.loc[runs["runID"]==int(fields[0])]
         else:
             thisRunID = runIDs[runIndex]
             row = runs.loc[runs["runID"]==thisRunID]
