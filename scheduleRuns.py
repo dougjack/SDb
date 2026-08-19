@@ -17,6 +17,8 @@ import time
 ###########################################################################
 workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
+runMissing = True
+
 queueName = "ECOPTM"
 AWSconfigFile = "/Users/dougj/Documents/QEDA/AWS/DJackson_config.json"
 
@@ -65,7 +67,11 @@ response = sqsClient.purge_queue(QueueUrl=queueURL["QueueUrl"])
 print(f"Waiting {purgeWaitTime_sec} seconds after purging queues...")
 time.sleep(purgeWaitTime_sec) 
 
-runs = pd.read_excel(os.path.join(workingDir, "runs.xlsx"))
+if runMissing:
+    runs = pd.read_csv(os.path.join(workingDir, "missingRuns.csv"))
+else:
+    runs = pd.read_excel(os.path.join(workingDir, "runs.xlsx"))
+    
 runIDs = runs["runID"].unique().tolist()
 
 for i, runID in enumerate(runIDs):
