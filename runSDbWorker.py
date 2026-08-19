@@ -25,8 +25,10 @@ args = parser.parse_args()
 
 if args.instanceNum:
     instanceNum = args.instanceNum
+    pollAWSjobs = True
 else:
     instanceNum = 0
+    pollAWSjobs = False
 print(f"instanceNum: {instanceNum}")
 
 ####################################################################################################
@@ -45,7 +47,7 @@ salmonTidefile = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_
 processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
 
 # AWS setup
-pollAWSjobs = True
+
 queueName = "ECOPTM"
 AWSconfigFile = "/Users/dougj/Documents/QEDA/AWS/DJackson_config.json"
 sleepTime_sec = 10
@@ -172,15 +174,16 @@ while runIndex<runs.shape[0]:
         
         elif thisAgentType=="salmon":
             
-            if str(row["insertionNode"])=="Freeport":
+            thisInsertionNode = str(row["insertionNode"].values[0])
+            if thisInsertionNode=="Freeport":
                 with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_ND.yaml")) as fH:
                     thisConfig = fH.read()
                 
-            elif str(row["insertionNode"])=="Vernalis":
+            elif thisInsertionNode=="Vernalis":
                 with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_SD.yaml")) as fH:
                     thisConfig = fH.read()
             else:
-                print(f"Invalid insertionNode: {row['insertionNode']}")
+                print(f"Invalid insertionNode: {thisInsertionNode}")
                 raise RuntimeError()
                 
             thisReleaseDate = dt.strftime(pd.Timestamp(row["releaseDate"].values[0]), "%m/%d/%Y")
@@ -217,6 +220,7 @@ while runIndex<runs.shape[0]:
                 completedProc = subprocess.run(javaCommand, shell=myShell, timeout=timeout_min*60)
                 exitCode = completedProc.returncode
                 if exitCode!=0:
+                    print(completedProc)
                     raise RuntimeError()
                 else:
                     break

@@ -6,16 +6,27 @@ Doug Jackson
 doug@QEDAconsulting.com
 """
 import os
+import glob
+import shutil
 import subprocess
 
 workingDir = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
 # Specify the number of instances to launch
-numInstances = 3
+numInstances = 4
 
 # Activate conda environment before running runEPTMscenarios.py
 activateCondaEnv = True
 condaEnv = "spyder-env"
+
+# Delete instance output directories
+instanceOutputDirs = glob.glob(os.path.join(workingDir, "instance_*"))
+for d in instanceOutputDirs:
+    try:
+        shutil.rmtree(d)
+        print(f"Deleted {d}")
+    except:
+        print(f"Could not delete {d}")
 
 instanceBatDir = os.path.join(workingDir, "instanceBatchFiles")
 os.makedirs(instanceBatDir, exist_ok=True)
