@@ -41,10 +41,11 @@ releaseStep_min = 15
 javaPath = "C:/Program Files/Java/jdk-26.0.2/bin/java"
 jarPath = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/data/ecoptm-v0.0.0-beta.jar"
 
-particleTidefile = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_repack_GZIP.h5"
-salmonTidefile = "C:/Users/dougj/Documents/QEDA/DWR/TomPaineSlough/fromXiao/tom_paine_slough_HYDRO_04may26/tom_paine_slough/dsm2_studies/studies/historical/output/hist_fc_mss_preprocessed_GZIP.h5"
+particleTidefile = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/tidefiles/fromXiao_21aug26/D-GO-sdg8c-2_repack_GZIP.h5"
+salmonNDtidefile = particleTidefile
+salmonSDtidefile = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/tidefiles/fromXiao_21aug26/D-GO-sdg8c-2_preprocessed_GZIP.h5"
 
-processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM_private/scripts/utilities/process_output/process_output.py"
+processOutputPath = "C:/Users/dougj/Documents/QEDA/DWR/programs/EcoPTM/scripts/utilities/process_output/process_output.py"
 
 # AWS setup
 
@@ -161,6 +162,8 @@ while runIndex<runs.shape[0]:
             thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", particleTidefile)
             thisConfig = thisConfig.replace("INSERTION_NODE_PLACEHOLDER", str(int(row["insertionNode"].values[0])))
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(int(row["numAgents"].values[0])))
+            
+            thisConfigFile = os.path.join(thisOutputDir, f"ptmConfig_{thisAgentType}_runID_{thisRunID}.yaml")
         
         elif thisAgentType=="surface":
             with open(os.path.join(workingDir, "data", "ptmConfig_template_surface.yaml")) as fH:
@@ -171,6 +174,8 @@ while runIndex<runs.shape[0]:
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(int(row["numAgents"].values[0])))
             
             shutil.copy(os.path.join(workingDir, "data", "particle.bhv"), os.path.join(thisOutputDir, "particle.bhv"))
+            
+            thisConfigFile = os.path.join(thisOutputDir, f"ptmConfig_{thisAgentType}_runID_{thisRunID}.yaml")
         
         elif thisAgentType=="salmon":
             
@@ -179,9 +184,17 @@ while runIndex<runs.shape[0]:
                 with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_ND.yaml")) as fH:
                     thisConfig = fH.read()
                 
+                thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", salmonNDtidefile)
+                
+                thisConfigFile = os.path.join(thisOutputDir, f"ptmConfig_{thisAgentType}_ND_runID_{thisRunID}.yaml")
+                
             elif thisInsertionNode=="Vernalis":
                 with open(os.path.join(workingDir, "data", "ptmConfig_template_salmon_SD.yaml")) as fH:
                     thisConfig = fH.read()
+                    
+                thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", salmonSDtidefile)
+                
+                thisConfigFile = os.path.join(thisOutputDir, f"ptmConfig_{thisAgentType}_SD_runID_{thisRunID}.yaml")
             else:
                 print(f"Invalid insertionNode: {thisInsertionNode}")
                 raise RuntimeError()
@@ -191,7 +204,7 @@ while runIndex<runs.shape[0]:
             numPlaceholders = thisConfig.count("RELEASE_NUM_PLACEHOLDER")
             
             numPerRelease = int(np.ceil(thisNumAgents/numPlaceholders))
-            thisConfig = thisConfig.replace("TIDEFILE_PLACEHOLDER", salmonTidefile)
+            
             thisConfig = thisConfig.replace("RELEASE_DATE_PLACEHOLDER", thisReleaseDate)
             thisConfig = thisConfig.replace("RELEASE_NUM_PLACEHOLDER", str(numPerRelease))
         
@@ -201,9 +214,7 @@ while runIndex<runs.shape[0]:
             
         thisConfig = thisConfig.replace("PTM_START_DATE_PLACEHOLDER", thisStartDate)
         thisConfig = thisConfig.replace("PTM_END_DATE_PLACEHOLDER", thisEndDate)
-        
-        thisConfigFile = os.path.join(thisOutputDir, f"ptmConfig_{thisAgentType}_runID_{thisRunID}.yaml")
-            
+
         with open(thisConfigFile, "w") as fH:
             print(thisConfig, end="", file=fH)
         
