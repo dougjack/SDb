@@ -148,14 +148,16 @@ for index, row in runs.iterrows():
 ###########################################################################
 # Consolidate outputs
 particleOutputList = []
-salmonNDoutputList = []
-salmonSDoutputList = []
+salmonOutputNDlist = []
+salmonOutputSDlist = []
 print("="*75)
 print("Consolidating outputs")
 for index, row in runs.iterrows():
     print("-"*75)
     thisRunID = row["runID"]
     print(f"Consolidating outputs for runID {thisRunID}")
+    
+    rowDF = row.to_frame().transpose()
     
     thisAgentType = row["agentType"]
     thisInsertionNode = row["insertionNode"]
@@ -171,7 +173,6 @@ for index, row in runs.iterrows():
         
         thisParticleOutput["runID"] = thisRunID
         
-        rowDF = row.to_frame().transpose()
         thisParticleOutput = pd.merge(thisParticleOutput, rowDF, on="runID")
         
         thisParticleOutput["releaseDate"] = [d + pd.DateOffset(releaseDelay_days) for d in thisParticleOutput["startDate"]]
@@ -181,7 +182,32 @@ for index, row in runs.iterrows():
         thisParticleOutput["timeSinceRelease_days"] = [d/(60*60*24) for d in thisParticleOutput["timeSinceRelease_sec"]]
         
         particleOutputList.append(thisParticleOutput)
+    
+    elif thisAgentType=="salmon":
+        
+        thisSurv = pd.read_csv(os.path.join(thisOutputDir, "routeSurvival.csv"))
+        
+        thisSurv["runID"] = thisRunID
+
+        thisSurv = pd.merge(thisSurv, rowDF, on="runID", how="outer")
+
+        if row["insertionNode"]=="Freeport":
+            salmonOutputNDlist.append(thisSurv)
+        elif row["insertionNode"]=="Vernalis":
+            salmonOutputSDlist.append(thisSurv)
 
 particleOutput = pd.concat(particleOutputList, ignore_index=True)
+salmonOutputND = pd.concat(salmonOutputNDlist, ignore_index=True)
+salmonOutputSD = pd.concat(salmonOutputSDlist, ignore_index=True)
 
+# Reorder columns
+frontCols = ["runID", "agentType", "insertionNode", "startDate", "endDate", "releaseDate", "datetime", "timeSinceRelease_days"]
+particleOutput = particleOutput[frontCols + [c for c in particleOutput.columns if c not in frontCols]]
 particleOutput.to_csv(os.path.join(outputDir, "particleOutput.csv"), index=False)
+
+frontCols = ["runID", "agentType", "insertionNode", "startDate", "endDate", "releaseDate"]
+salmonOutputND = salmonOutputND[frontCols + [c for c in salmonOutputND.columns if c not in frontCols]]
+salmonOutputND.to_csv(os.path.join(outputDir, "salmonOutputND.csv"), index=False)
+
+salmonOutputSD = salmonOutputSD[frontCols + [c for c in salmonOutputSD.columns if c not in frontCols]]
+salmonOutputSD.to_csv(os.path.join(outputDir, "salmonOutputSD.csv"), index=False)
