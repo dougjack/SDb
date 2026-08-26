@@ -23,12 +23,17 @@ reqFiles = {"salmon": {"Freeport":["routeSurvival.csv"],
             "particle": ["ptm_out_groupFlux.csv", "ptm_out_nodeFlux.csv"],
             "surface":["ptm_out_groupFlux.csv", "ptm_out_nodeFlux.csv"]}
 
+releaseDelay_days = 1
+
 ###########################################################################
 # Constants
 ###########################################################################
 os.chdir(workingDir)
 
 runs = pd.read_excel(os.path.join(workingDir, "runs.xlsx"))
+
+outputDir = os.path.join(workingDir, "output_analyze")
+os.makedirs(outputDir, exist_ok=True)
 
 ###########################################################################
 # Consolidate outputs
@@ -140,10 +145,43 @@ for index, row in runs.iterrows():
     if thisEndDate!=correctEndDate:
         print(f"RunID {thisRunID} end date of {thisEndDate} doesn't match runs.xlsx end date of {correctEndDate}")
     
+###########################################################################
+# Consolidate outputs
+particleOutputList = []
+salmonNDoutputList = []
+salmonSDoutputList = []
+print("="*75)
+print("Consolidating outputs")
+for index, row in runs.iterrows():
+    print("-"*75)
+    thisRunID = row["runID"]
+    print(f"Consolidating outputs for runID {thisRunID}")
     
+    thisAgentType = row["agentType"]
+    thisInsertionNode = row["insertionNode"]
+    thisOutputDir = os.path.join(workingDir, "output", f"runID_{thisRunID}", "output")
     
-    
-    
-
+    if thisAgentType=="particle" or thisAgentType=="surface":
         
-    
+        thisNodeFlux = pd.read_csv(os.path.join(thisOutputDir, "ptm_out_nodeFlux.csv"))
+        
+        thisGroupFlux = pd.read_csv(os.path.join(thisOutputDir, "ptm_out_groupFlux.csv"))
+        
+        thisParticleOutput = pd.merge(thisNodeFlux, thisGroupFlux, on=["datetime"], how="outer")
+        
+        thisParticleOutput["runID"] = thisRunID
+        
+        rowDF = row.to_frame().transpose()
+        thisParticleOutput = pd.merge(thisParticleOutput, rowDF, on="runID")
+        
+        thisParticleOutput["releaseDate"] = [d + pd.DateOffset(releaseDelay_days) for d in thisParticleOutput["startDate"]]
+        thisParticleOutput["datetime"] = [dt.strptime(d, "%Y-%m-%d %H:%M:%S") for d in thisParticleOutput["datetime"]]
+        thisParticleOutput["timeSinceRelease"] = thisParticleOutput["datetime"] - thisParticleOutput["releaseDate"]
+        thisParticleOutput["timeSinceRelease_sec"] = [d.total_seconds() for d in thisParticleOutput["timeSinceRelease"]]
+        thisParticleOutput["timeSinceRelease_days"] = [d/(60*60*24) for d in thisParticleOutput["timeSinceRelease_sec"]]
+        
+        particleOutputList.append(thisParticleOutput)
+
+particleOutput = pd.concat(particleOutputList, ignore_index=True)
+
+particleOutput.to_csv(os.path.join(outputDir, "particleOutput.csv"), index=False)
