@@ -39,56 +39,72 @@ analyzeSalmon <- function(dF, loc) {
                                              first_release_date=dmy(first_release_date), last_release_date=dmy(last_release_date),
                                              scenario=ifelse(scenario=="D-GO-BSL-10yr-b_salmon", "baseline", "preferred"))
     
-    p <- ggplot(dF) + geom_line(aes(x=first_release_date, y=overall)) +
-        facet_wrap(~scenario, ncol=1) +
-        labs(title=paste("Through-Delta survival,", loc), x="", y="survival") +
-        theme_light()
-    ggsave(file.path(outputDir, paste0("timeSeriesSurv_", loc, ".png")), width=figWidth, height=figHeight)
+    dF <- dF |> select(first_release_date, scenario:overall)
     
-    dFsurv <- dF |> select(first_release_date, scenario, overall) |> 
-        pivot_wider(id_cols=first_release_date, names_from=scenario, values_from=overall) |> 
-        mutate(month=as.factor(month(first_release_date)), diff=preferred-baseline)
+    vars <- names(dF)[which(!(names(dF) %in% c("first_release_date", "scenario")))]
     
-    p <- ggplot(dFsurv) + geom_point(aes(x=first_release_date, y=diff, color=month), size=0.25) +
-        ylim(-1, 1) +
-        labs(title=paste("Difference in through-Delta survival,", loc), x="", y="survival difference (preferred - baseline)") +
-        guides(color=guide_legend(override.aes=list(size=2))) +
-        theme_light()
-    ggsave(file.path(outputDir, paste0("diffSurv_", loc, ".png")), width=figWidth, height=figHeight)
+    for(var in vars) {
+        
+        thisDF <- dF[, c("first_release_date", "scenario", var)]
+        names(thisDF) <- c("first_release_date", "scenario", "var")
+        
+        thisDFwide <- thisDF |> pivot_wider(id_cols=first_release_date, names_from=scenario, values_from=var) |> 
+            mutate(year=as.factor(year(first_release_date)), month=as.factor(month(first_release_date)), julianDay=yday(first_release_date),
+                   diff=preferred-baseline)
+        
+        varType <- ifelse(grepl("frac", var), "routing", "survival")
+        
+        thisOutputDir <- file.path(outputDir, loc, varType)
+        dir.create(thisOutputDir, recursive=T, showWarnings=F)
+        
+        p <- ggplot(thisDF) + geom_line(aes(x=first_release_date, y=var)) +
+            facet_wrap(~scenario, ncol=1) +
+            labs(title=paste0(var, ", ", loc), x="", y=varType) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("timeSeries_", loc, "_", var, ".png")), width=figWidth, height=figHeight)
+        
+        p <- ggplot(thisDFwide) + geom_point(aes(x=julianDay, y=diff, color=month), size=0.25) +
+            facet_wrap(~year, ncol=1, scales="free_y") +
+            labs(title=paste0("Difference in ", var, ", ", loc), x="Julian day", y=paste(varType, "difference (preferred - baseline)")) +
+            guides(color=guide_legend(override.aes=list(size=2))) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("diff_", loc, "_", var, ".png")), width=figWidth, height=figHeight)
+        
+        p <- ggplot(thisDFwide) + geom_point(aes(x=baseline, y=preferred, group=month, color=month), alpha=0.25) +
+            geom_abline(intercept=0, slope=1, color="red") +
+            facet_wrap(~month, ncol=1) +
+            labs(title=paste(var, "comparison,", loc), x="survival, baseline scenario", y=paste0(varType, ", preferred alternative")) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("compare_", loc, "_", var, ".png")), width=figWidth, height=figHeight)
+        
+        ####################################################################################################
+        # Boxplots with significance
+        # From Wikipedia: "The Wilcoxon test is a good alternative to the t-test when the normal distribution of the 
+        # differences between paired individuals cannot be assumed. Instead, it assumes a weaker hypothesis that the 
+        # distribution of this difference is symmetric around a central value and it aims to test whether this center 
+        # value differs significantly from zero."
+        sigs <- thisDFwide |> group_by(month) |> filter(n_distinct(diff)>1) |> 
+            summarize(pValResampleMean=resampleDiff(diff),
+                      pValResampleMed=resampleMedDiff(diff),
+                      pValPairedT=t.test(preferred, baseline, paired=T, alternative="two.sided")$p.value,
+                      pValShapiro=shapiro.test(diff)$p.value,
+                      pWilcox = wilcox.test(baseline, preferred, paired=T)$p.value)
+        
+        sigMonths <- sigs |> filter(pWilcox<0.05)
+        sigMonths <- sigMonths$month
+        
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
+            annotate("text", x=sigMonths, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
+            labs(title=paste(var, "comparison,", loc), x="month", y=paste(varType, "difference (preferred - baseline)")) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("boxPlot_", loc, "_", var, ".png")), width=figWidth, height=figHeight)
+        cat("--------------------------------------------------------------------\n")
+        cat(paste0(var, ", ", loc, "\n"))
+        print(sigs)
+        
+    }
     
-    p <- ggplot(dFsurv) + geom_point(aes(x=baseline, y=preferred, group=month, color=month), alpha=0.25) +
-        geom_abline(intercept=0, slope=1, color="red") +
-        facet_wrap(~month, ncol=1) +
-        labs(title=paste("Through-Delta survival comparison,", loc), x="survival, baseline scenario", y="survival, preferred alternative") +
-        theme_light()
-    ggsave(file.path(outputDir, paste0("compareSurv_", loc, ".png")), width=figWidth, height=figHeight)
-    
-    ####################################################################################################
-    # Boxplots with significance
-    # From Wikipedia: "The Wilcoxon test is a good alternative to the t-test when the normal distribution of the 
-    # differences between paired individuals cannot be assumed. Instead, it assumes a weaker hypothesis that the 
-    # distribution of this difference is symmetric around a central value and it aims to test whether this center 
-    # value differs significantly from zero."
-    sigs <- dFsurv |> group_by(month) |> summarize(pValResampleMean=resampleDiff(diff),
-                                                   pValResampleMed=resampleMedDiff(diff),
-                                                   pValPairedT=t.test(preferred, baseline, paired=T, alternative="two.sided")$p.value,
-                                                   pValShapiro=shapiro.test(diff)$p.value,
-                                                   pWilcox = wilcox.test(baseline, preferred, paired=T)$p.value)
-    
-    sigMonths <- sigs |> filter(pWilcox<0.05)
-    sigMonths <- sigMonths$month
-    
-    p <- ggplot(dFsurv) + geom_boxplot(aes(x=month, y=diff)) + 
-        annotate("text", x=sigMonths, y=max(dFsurv$diff)*1.05, label="*", size=8, color="blue") +
-        labs(title=paste("Through-Delta survival comparison,", loc), x="month", y="survival difference (preferred - baseline)") +
-        theme_light()
-    ggsave(file.path(outputDir, paste0("boxPlotSurv_", loc, ".png")), width=figWidth, height=figHeight)
-
-    cat("--------------------------------------------------------------------\n")
-    cat(paste0(loc, "\n"))
-    print(sigs)
-    
-    return(list(dF=dF, dFsurv=dFsurv))
+    return(list(dF=dF))
 }
 
 resampleDiff <- function(diffs) {
