@@ -13,6 +13,8 @@ workingDir <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb
 
 dataDir <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromXiao/studies_13sep26"
 
+insertionLocsFile = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/insertionLocs.csv"
+
 # Number of resamples
 N <- 10000
 
