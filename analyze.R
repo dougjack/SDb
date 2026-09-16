@@ -138,6 +138,8 @@ analyzeParticles <- function(dF, type) {
     
     locs <- unique(dF$SimLoc)
     
+    typeStr <- ifelse(type=="neutrallyBuoyant", "neutrally buoyant", "surface-oriented")
+    
     for(var in vars) {
         
         thisOutputDir <- file.path(outputDir, type, var)
@@ -150,19 +152,25 @@ analyzeParticles <- function(dF, type) {
             
             if(sum(!is.na(thisDF$var))==0 | sum(thisDF$var!=0)==0) {next}
             
+            thisInsertionLoc <- insertionLocs |> filter(loc==releaseLoc)
+            thisInsertionNode <- thisInsertionLoc$node
+            thisInsertionDesc <- thisInsertionLoc$name
+            
             thisDFwide <- thisDF |> pivot_wider(id_cols=startDate, names_from=scenario, values_from=var) |> 
                 mutate(year=as.factor(year(startDate)), month=as.factor(month(startDate)), julianDay=yday(startDate),
                        diff=preferred-baseline)
             
             p <- ggplot(thisDF) + geom_point(aes(x=startDate, y=var)) +
                 facet_wrap(~scenario, ncol=1) +
-                labs(title=paste0(var, ", release node ", releaseLoc), x="", y=yLab) +
+                labs(title=paste0(var, ", release node ", thisInsertionNode, ", ", typeStr), subtitle=thisInsertionDesc,
+                     x="", y=yLab) +
                 theme_light()
             ggsave(file.path(thisOutputDir, paste0("timeSeries_", releaseLoc, "_", var, ".png")), width=figWidth, height=figHeight)
             
             p <- ggplot(thisDFwide) + geom_point(aes(x=year, y=diff, color=month), size=2) +
                 facet_wrap(~month, ncol=1, scales="free_y") +
-                labs(title=paste0("Difference in ", var, ", release node ", releaseLoc), x="Julian day", y=paste("90-day flux difference (preferred - baseline)")) +
+                labs(title=paste0("Difference in ", var, ", release node ", thisInsertionNode, ", ", typeStr), subtitle=thisInsertionDesc,
+                     x="Julian day", y=paste("90-day flux difference (preferred - baseline)")) +
                 guides(color=guide_legend(override.aes=list(size=2))) +
                 theme_light()
             ggsave(file.path(thisOutputDir, paste0("diff_", releaseLoc, "_", var, ".png")), width=figWidth, height=figHeight)
@@ -170,7 +178,8 @@ analyzeParticles <- function(dF, type) {
             p <- ggplot(thisDFwide) + geom_point(aes(x=baseline, y=preferred, group=month, color=month), size=2, alpha=1) +
                 geom_abline(intercept=0, slope=1, color="red") +
                 facet_wrap(~month, ncol=1) +
-                labs(title=paste(var, "comparison, release node", releaseLoc), x="90-day flux, baseline scenario", y=paste0("90-day flux, preferred alternative")) +
+                labs(title=paste(var, "comparison, release node", thisInsertionNode, ", ", typeStr), subtitle=thisInsertionDesc,
+                     x="90-day flux, baseline scenario", y=paste0("90-day flux, preferred alternative")) +
                 theme_light()
             ggsave(file.path(thisOutputDir, paste0("compare_", releaseLoc, "_", var, ".png")), width=figWidth, height=figHeight)
 
@@ -192,13 +201,56 @@ analyzeParticles <- function(dF, type) {
             
             p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
                 annotate("text", x=sigMonths, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
-                labs(title=paste(var, "comparison, release node", releaseLoc), x="month", y=paste("90-day flux difference (preferred - baseline)")) +
+                labs(title=paste(var, "comparison, release node", thisInsertionNode, ", ", typeStr), subtitle=thisInsertionDesc,
+                     x="month", y=paste("90-day flux difference (preferred - baseline)")) +
                 theme_light()
             ggsave(file.path(thisOutputDir, paste0("boxPlot_", releaseLoc, "_", var, ".png")), width=figWidth, height=figHeight)
             cat("--------------------------------------------------------------------\n")
             cat(paste0(var, ", ", releaseLoc, "\n"))
             print(sigs)
         }
+        
+        # Plot all release locations together
+        thisDF <- dF[, c("startDate", "SimLoc", "scenario", var)]
+        names(thisDF) <- c("startDate", "SimLoc", "scenario", "var")
+        thisDF <- left_join(thisDF, insertionLocs, by=c("SimLoc"="loc"))
+        
+        thisDFwide <- thisDF |> pivot_wider(id_cols=c("startDate", "SimLoc", "node", "name"), names_from=scenario, values_from=var) |> 
+            mutate(month=as.factor(month(startDate, label=T)), diff=preferred-baseline, node=as.factor(node))
+        
+        sigs <- thisDFwide |> group_by(node) |> filter(n_distinct(diff)>1) |> 
+            summarize(pValResampleMean=resampleDiff(diff),
+                      pValResampleMed=resampleMedDiff(diff),
+                      pValPairedT=t.test(preferred, baseline, paired=T, alternative="two.sided")$p.value,
+                      pValShapiro=shapiro.test(diff)$p.value,
+                      pWilcox = wilcox.test(baseline, preferred, paired=T)$p.value)
+        
+        sigNodes <- sigs |> filter(pWilcox<0.05)
+        sigNodes <- sigNodes$node
+        
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=node, y=diff)) +
+            annotate("text", x=sigNodes, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
+            labs(title=paste(var, "comparison,", typeStr), x="release node", y="90-day flux difference (preferred - baseline)") +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("boxPlot_", var, ".png")), width=figWidth, height=figHeight)
+        
+        sigs <- thisDFwide |> group_by(node, month) |> filter(n_distinct(diff)>1) |> 
+            summarize(pValResampleMean=resampleDiff(diff),
+                      pValResampleMed=resampleMedDiff(diff),
+                      pValPairedT=t.test(preferred, baseline, paired=T, alternative="two.sided")$p.value,
+                      pValShapiro=shapiro.test(diff)$p.value,
+                      pWilcox = wilcox.test(baseline, preferred, paired=T)$p.value, 
+                      .groups="drop")
+        
+        sigs <- sigs |> filter(pWilcox<0.05)
+        
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=node, y=diff)) +
+            facet_wrap(~month, ncol=1) +
+            geom_text(data=sigs, aes(x=node, y=max(thisDFwide$diff)*0.9, label="*"), size=8, color="blue") +
+            labs(title=paste(var, "comparison,", typeStr), x="release node", y="90-day flux difference (preferred - baseline)") +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("boxPlot_byMonth_", var, ".png")), width=6, height=8)
+        
     }
     
     return(list(dF=dF))
@@ -254,6 +306,8 @@ out <- analyzeSalmon(southDelta, "southDelta")
 
 ####################################################################################################
 # neutrally buoyant and surface-oriented particles
+insertionLocs <- read.csv(insertionLocsFile)
+
 npFiles <- list.files(dataDir, pattern="np_*", full.names=T)
 spFiles <- list.files(dataDir, pattern="sp_*", full.names=T)
 
