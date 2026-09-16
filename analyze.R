@@ -215,6 +215,8 @@ analyzeParticles <- function(dF, type) {
         names(thisDF) <- c("startDate", "SimLoc", "scenario", "var")
         thisDF <- left_join(thisDF, insertionLocs, by=c("SimLoc"="loc"))
         
+        if(sum(!is.na(thisDF$var))==0 | sum(thisDF$var!=0)==0) {next}
+        
         thisDFwide <- thisDF |> pivot_wider(id_cols=c("startDate", "SimLoc", "node", "name"), names_from=scenario, values_from=var) |> 
             mutate(month=as.factor(month(startDate, label=T)), diff=preferred-baseline, node=as.factor(node))
         
