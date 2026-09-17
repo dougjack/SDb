@@ -51,7 +51,7 @@ analyzeSalmon <- function(dF, loc) {
         names(thisDF) <- c("first_release_date", "scenario", "var")
         
         thisDFwide <- thisDF |> pivot_wider(id_cols=first_release_date, names_from=scenario, values_from=var) |> 
-            mutate(year=as.factor(year(first_release_date)), month=as.factor(month(first_release_date)), julianDay=yday(first_release_date),
+            mutate(year=as.factor(year(first_release_date)), month=as.factor(month(first_release_date, label=T)), julianDay=yday(first_release_date),
                    diff=preferred-baseline)
         
         varType <- ifelse(grepl("frac", var), "routing", "survival")
@@ -253,6 +253,14 @@ analyzeParticles <- function(dF, type) {
             theme_light()
         ggsave(file.path(thisOutputDir, paste0("boxPlot_byMonth_", var, ".png")), width=6, height=8)
         
+        p <- ggplot(thisDFwide) + geom_point(aes(x=baseline, y=preferred, color=node, group=node)) + 
+            geom_abline(slope=1, intercept=0, color="red") + 
+            #xlim(0, 100) + ylim(0, 100) +
+            facet_wrap(~node, ncol=1) +
+            labs(title=paste(var, "comparison, ", typeStr), subtitle=thisInsertionDesc,
+                 x="90-day flux, baseline scenario", y=paste0("90-day flux, preferred alternative")) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("compare_", var, ".png")), width=figWidth, height=figHeight)
     }
     
     return(list(dF=dF))
