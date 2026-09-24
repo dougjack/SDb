@@ -1,14 +1,21 @@
 # South Delta barriers project
 # Doug Jackson
 # QEDA Consulting, LLC
-# 17sep26
+# 23sep26
 
 \pagebreak
 # North Delta salmon: differences in routing by month
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSUT.png){height=300px}
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSTM.png){height=300px}
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracDCC.png){height=300px}
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracGEO.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSUT_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSTM_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracDCC_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracGEO_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSUT_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSTM_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracDCC_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracGEO_junction.png){height=300px}
+
+# North Delta salmon: differences in routing by month
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/routing/boxPlot_northDelta_fracSAC_route.png){height=300px}
 
 \pagebreak
 # North Delta salmon: differences in survival by month
@@ -21,11 +28,17 @@
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/northDelta/survival/boxPlot_northDelta_overall.png){height=300px}
 
 \pagebreak   
-# South Delta salmon: differences in routing (top row) and survival (bottom row) by month
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_SJR.png){height=300px}
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_OMR.png){height=300px}
-![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_TC.png){height=300px}
+# South Delta salmon: differences in routing by month
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_SJR_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_OMR_route.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_TC_route.png){height=300px}
 
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_SJR_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_OMR_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_TC_junction.png){height=300px}
+![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/routing/boxPlot_southDelta_frac_SJR_TC_junction.png){height=300px}
+
+# South Delta salmon: differences in survival by month
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/survival/boxPlot_southDelta_SJR.png){height=300px}
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/survival/boxPlot_southDelta_OMR.png){height=300px}
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/southDelta/survival/boxPlot_southDelta_TC.png){height=300px}
@@ -95,3 +108,6 @@
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/surfaceOriented/EXPORT_CCF/compare_EXPORT_CCF.png){height=300px}
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/surfaceOriented/sjr_to_sdelta/compare_sjr_to_sdelta.png){height=300px}
 ![](C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/output_analyze/surfaceOriented/PAST_CHIPPS/compare_PAST_CHIPPS.png){height=300px}
+
+\pagebreak
+![](C:/Users/dougj/Documents/Obsidian/QEDA/attachments/Pasted image 20260915165330.png){height=600px}

@@ -5,15 +5,20 @@
 library(tidyverse)
 library(ggplot2)
 library(lubridate)
+library(readxl)
 
 ####################################################################################################
 # Constants
 ####################################################################################################
 workingDir <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb"
 
-dataDir <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromXiao/studies_13sep26"
+dataDir <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromXiao/studies_22sep26"
 
 insertionLocsFile = "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/programs/SDb/insertionLocs.csv"
+
+# South Delta flows
+baselineFlowFile <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromXiao/studies_22sep26/hydro/D-GO-BSL-10yr-b/D-GO-BSL-10yr-b_flow.xlsx"
+preferredFlowFile <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromXiao/studies_22sep26/hydro/D-GO-9b/D-GO-9b_flow.xlsx"
 
 # Number of resamples
 N <- 10000
@@ -97,12 +102,19 @@ analyzeSalmon <- function(dF, loc) {
         
         p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
             annotate("text", x=sigMonths, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
-            labs(title=paste(var, "comparison,", loc), x="month", y=paste(varType, "difference (preferred - baseline)")) +
+            labs(title=paste(var, "comparison,", loc), x="", y=paste(varType, "difference (preferred - baseline)")) +
             theme_light()
         ggsave(file.path(thisOutputDir, paste0("boxPlot_", loc, "_", var, ".png")), width=figWidth, height=figHeight)
         cat("--------------------------------------------------------------------\n")
         cat(paste0(var, ", ", loc, "\n"))
         print(sigs)
+        
+        # Boxplots by year
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
+            facet_wrap(~year, ncol=3) +
+            labs(title=paste(var, "comparison,", loc), x="", y=paste(varType, "difference (preferred - baseline)")) +
+            theme_light()
+        ggsave(file.path(thisOutputDir, paste0("boxPlot_byYear_", loc, "_", var, ".png")), width=10, height=9)
         
     }
     
@@ -314,6 +326,13 @@ out <- analyzeSalmon(northDelta, "northDelta")
 southDelta <- readSalmon(southDeltaFiles)
 out <- analyzeSalmon(southDelta, "southDelta")
 
+# Calculate averages by location to verify that the correct data were copied to Excel spreadsheets
+northDeltaLong <- northDelta |> pivot_longer(cols=c(-Date, -ptm_start_date, -first_release_date, -last_release_date, -scenario), names_to="var", values_to="val")
+northDeltaAvg <- northDeltaLong |> select(Date, scenario, var, val) |> group_by(scenario, var) |> summarize(meanVal=mean(val), .groups="drop")
+
+southDeltaLong <- southDelta |> pivot_longer(cols=c(-Date, -ptm_start_date, -first_release_date, -last_release_date, -scenario), names_to="var", values_to="val")
+southDeltaAvg <- southDeltaLong |> select(Date, scenario, var, val) |> group_by(scenario, var) |> summarize(meanVal=mean(val), .groups="drop")
+
 ####################################################################################################
 # neutrally buoyant and surface-oriented particles
 insertionLocs <- read.csv(insertionLocsFile)
@@ -326,3 +345,45 @@ out <- analyzeParticles(np, "neutrallyBuoyant")
 
 sp <- readParticles(spFiles)
 out <- analyzeParticles(sp, "surfaceOriented")
+
+# Calculate averages by location to verify that the correct data were copied to Excel spreadsheets
+npLong <- np |> pivot_longer(cols=c(-SimPeriod, -SimLoc, -scenario, -startDate), names_to="loc", values_to="flux")
+npAvg <- npLong |> select(scenario, loc, flux) |> group_by(scenario, loc) |> summarize(meanFlux=mean(flux), .groups="drop")
+
+spLong <- sp |> pivot_longer(cols=c(-SimPeriod, -SimLoc, -scenario, -startDate), names_to="loc", values_to="flux")
+spAvg <- spLong |> select(scenario, loc, flux) |> group_by(scenario, loc) |> summarize(meanFlux=mean(flux), .groups="drop")
+
+####################################################################################################
+# Analyze South Delta flow
+baselineFlowHeaders <- read_xlsx(baselineFlowFile, skip=1, n_max=1, col_names=F) |> as.character()
+baselineFlow <- read_xlsx(baselineFlowFile, skip=7, col_names=baselineFlowHeaders)
+names(baselineFlow)[2] <- "datetime"
+baselineFlow <- baselineFlow |> mutate(scenario="baseline",
+                                       outflow_OH1=pmax(0, OH1), outflow_SJL=pmax(0, SJL), fracOutflow_SJL=outflow_SJL/(outflow_SJL + outflow_OH1))
+baselineFlowFrac <- baselineFlow |> select(datetime, fracOutflow_SJL)
+
+preferredFlowHeaders <- read_xlsx(preferredFlowFile, skip=1, n_max=1, col_names=F) |> as.character()
+preferredFlow <- read_xlsx(preferredFlowFile, skip=7, col_names=preferredFlowHeaders)
+names(preferredFlow)[2] <- "datetime"
+preferredFlow <- preferredFlow |> mutate(scenario="preferred", 
+                                         outflow_OH1=pmax(0, OH1), outflow_SJL=pmax(0, SJL), fracOutflow_SJL=outflow_SJL/(outflow_SJL + outflow_OH1))
+preferredFlowFrac <- preferredFlow |> select(datetime, fracOutflow_SJL)
+
+flowFrac <- full_join(baselineFlowFrac, preferredFlowFrac, by="datetime", suffix=c("_baseline", "_preferred"))
+
+flowFrac <- flowFrac |> mutate(year=year(datetime), 
+                               diff=fracOutflow_SJL_preferred - fracOutflow_SJL_baseline, month=as.factor(month(datetime, label=T)))
+
+p <- ggplot(flowFrac) + geom_point(aes(x=fracOutflow_SJL_baseline, y=fracOutflow_SJL_preferred), alpha=0.25) +
+    geom_abline(intercept=0, slope=1, color="red") +
+    #facet_wrap(~month, ncol=1) +
+    facet_grid(month~year) +
+    theme_light()
+ggsave(file.path(outputDir, "compareFlowFrac.png"), width=15, height=15)
+
+p <- ggplot(flowFrac) + geom_boxplot(aes(x=month, y=diff)) + 
+    #annotate("text", x=sigMonths, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
+    #labs(title=paste(var, "comparison, release node", thisInsertionNode, ", ", typeStr), subtitle=thisInsertionDesc,
+    #     x="month", y=paste("90-day flux difference (preferred - baseline)")) +
+    theme_light()
+ggsave(file.path(outputDir, "boxPlotFlowFrac.png"), width=figWidth, height=figHeight)
