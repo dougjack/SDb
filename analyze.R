@@ -6,7 +6,7 @@ library(tidyverse)
 library(ggplot2)
 library(lubridate)
 library(readxl)
-
+library(slider)
 ####################################################################################################
 # Constants
 ####################################################################################################
@@ -22,6 +22,11 @@ preferredFlowFile <- "C:/Users/dougj/Documents/QEDA/DWR/SouthDeltaBarriers/fromX
 
 # Number of resamples
 N <- 10000
+
+# Time step used in flows file
+tidefileIncrement_min <- 15
+
+rollingMeanDays <- 30
 
 figWidth <- 7
 figHeight <- 7
@@ -387,3 +392,122 @@ p <- ggplot(flowFrac) + geom_boxplot(aes(x=month, y=diff)) +
     #     x="month", y=paste("90-day flux difference (preferred - baseline)")) +
     theme_light()
 ggsave(file.path(outputDir, "boxPlotFlowFrac.png"), width=figWidth, height=figHeight)
+
+# Calculate x-day rolling means of flow fractions
+samplesBefore <- 0
+samplesAfter <- round((60/tidefileIncrement_min*24*rollingMeanDays))
+
+flowFrac <- flowFrac |> mutate(meanFracOutflow_SJL_baseline=slide_dbl(fracOutflow_SJL_baseline, mean, na.rm=T, .before=samplesBefore, .after=samplesAfter),
+                               meanFracOutflow_SJL_preferred=slide_dbl(fracOutflow_SJL_preferred, mean, na.rm=T, .before=samplesBefore, .after=samplesAfter))
+
+# Compare frac_SJL_junction routing to flows
+dF <- southDelta |> mutate(Date=dmy(Date), ptm_start_date=dmy(ptm_start_date), 
+                   first_release_date=dmy(first_release_date), last_release_date=dmy(last_release_date),
+                   scenario=ifelse(scenario=="D-GO-BSL-10yr-b_salmon", "baseline", "preferred"))
+
+dF <- dF |> select(first_release_date, scenario:overall)
+
+var <- "frac_SJR_junction"
+thisDF <- dF[, c("first_release_date", "scenario", var)]
+names(thisDF) <- c("first_release_date", "scenario", "var")
+
+thisDFwide <- thisDF |> pivot_wider(id_cols=first_release_date, names_from=scenario, values_from=var) |> 
+    mutate(year=as.factor(year(first_release_date)), month=as.factor(month(first_release_date, label=T)), julianDay=yday(first_release_date),
+           diff=preferred-baseline)
+
+fracSJR <- left_join(thisDFwide, flowFrac, by=c("first_release_date"="datetime")) |> 
+    mutate(frac_SJR_baseline=baseline, frac_SJR_preferred=preferred, year=year.x, month=month.x) |> 
+    select(first_release_date, year, month, frac_SJR_baseline, frac_SJR_preferred, meanFracOutflow_SJL_baseline, meanFracOutflow_SJL_preferred)
+
+fracSJR_baseline <- fracSJR |> select(first_release_date, year, month, frac_SJR_baseline, meanFracOutflow_SJL_baseline) |> mutate(scenario="baseline")
+names(fracSJR_baseline) <- c("first_release_date", "year", "month", "frac_SJR", "meanFracOutflow_SJL", "scenario")
+fracSJR_preferred <- fracSJR |> select(first_release_date, year, month, frac_SJR_preferred, meanFracOutflow_SJL_preferred) |> mutate(scenario="preferred")
+names(fracSJR_preferred) <- c("first_release_date", "year", "month", "frac_SJR", "meanFracOutflow_SJL", "scenario")
+
+fracSJRlong <- bind_rows(fracSJR_baseline, fracSJR_preferred)
+
+p <- ggplot(fracSJRlong, aes(x=meanFracOutflow_SJL, y=frac_SJR)) + geom_point(aes(color=month, group=month), alpha=0.75) +
+    geom_smooth(linewidth=0.75, alpha=0.1, method="loess", formula="y~x", color="black", fill="black") +
+    labs(x="30-day rolling mean of SJL outflow fraction", y="SJR junction routing fraction") +
+    theme_light()
+ggsave(file.path(outputDir, "fracSJR_vs_fracSJL.png"), width=figWidth, height=figHeight)
+
+p <- ggplot(fracSJRlong, aes(x=meanFracOutflow_SJL, y=frac_SJR)) + geom_point(aes(color=month, group=month), alpha=0.75) +
+    facet_wrap(~scenario, ncol=1) +
+    geom_smooth(linewidth=0.75, alpha=0.1, method="loess", formula="y~x", color="black", fill="black") +
+    #guides(color=guide_legend(override.aes=list(alpha=1, size=3))) +
+    scale_color_brewer(palette="Paired") +
+    labs(x="30-day rolling mean of SJL outflow fraction", y="SJR junction routing fraction") +
+    theme_light()
+ggsave(file.path(outputDir, "fracSJR_vs_fracSJL_byScenario.png"), width=figWidth, height=figHeight)
+
+p <- ggplot(fracSJRlong, aes(x=meanFracOutflow_SJL, y=frac_SJR, color=scenario, fill=scenario)) + geom_point(alpha=0.25) +
+    facet_wrap(~month, ncol=5) +
+    geom_smooth(linewidth=0.75, alpha=0.1, method="loess", formula="y~x") +
+    scale_color_brewer(palette="Dark2") +
+    labs(x="30-day rolling mean of SJL outflow fraction", y="SJR junction routing fraction") +
+    theme_light()
+ggsave(file.path(outputDir, "fracSJR_vs_fracSJL_byMonth.png"), width=12, height=6)
+
+meanFracSJRbyYear <- fracSJRlong |> group_by(year, month, scenario) |> 
+    summarize(meanFracSJR=mean(frac_SJR, na.rm=T), meanFracOutflow_SJL=mean(meanFracOutflow_SJL, na.rm=T), 
+              medianFracSJR=median(frac_SJR, na.rm=T), medianFracOutflow_SJL=median(meanFracOutflow_SJL, na.rm=T),
+              .groups="drop")
+
+p <- ggplot(meanFracSJRbyYear) + geom_line(aes(x=meanFracOutflow_SJL, y=meanFracSJR, color=year, group=year)) +
+    geom_point(aes(x=meanFracOutflow_SJL, y=meanFracSJR, color=year, shape=scenario, group=year), size=2) +
+    facet_wrap(~month, ncol=5) +
+    theme_light()
+ggsave(file.path(outputDir, "meanfracSJR_vs_fracSJL_byYear.png"), width=figWidth, height=figHeight)
+
+p <- ggplot(meanFracSJRbyYear) + geom_line(aes(x=medianFracOutflow_SJL, y=medianFracSJR, color=year, group=year)) +
+    geom_point(aes(x=medianFracOutflow_SJL, y=medianFracSJR, color=year, shape=scenario, group=year), size=2) +
+    facet_wrap(~month, ncol=5) +
+    theme_light()
+ggsave(file.path(outputDir, "medianfracSJR_vs_fracSJL_byYear.png"), width=figWidth, height=figHeight)
+
+meanFracSJRbyMonth <- fracSJRlong |> group_by(month, scenario) |> 
+    summarize(meanFracSJR=mean(frac_SJR, na.rm=T), meanFracOutflow_SJL=mean(meanFracOutflow_SJL, na.rm=T), .groups="drop")
+
+p <- ggplot(meanFracSJRbyMonth) + geom_line(aes(x=meanFracOutflow_SJL, y=meanFracSJR, color=month, group=month)) +
+    geom_point(aes(x=meanFracOutflow_SJL, y=meanFracSJR, shape=scenario, group=month)) +
+    theme_light()
+ggsave(file.path(outputDir, "fracSJR_vs_fracSJL_byMonth.png"), width=figWidth, height=figHeight)
+
+# # Calculate difference in median flow fraction by month
+# diffMedFlowFrac <- meanFracSJRbyYear |> select(year, month, scenario, medianFracOutflow_SJL) |> 
+#     pivot_wider(id_cols=c(year, month), names_from=scenario, values_from=medianFracOutflow_SJL) |> 
+#     mutate(diff=preferred-baseline)
+# 
+# p <- ggplot(diffMedFlowFrac) + geom_boxplot(aes(x=month, y=diff)) +
+#     labs(x="", y="difference in median outflow fraction (preferred - baseline)") +
+#     theme_light()
+# ggsave(file.path(outputDir, "diffOutflowFrac.png"), width=figWidth, height=figHeight)
+
+fracSJR <- fracSJR |> mutate(diffFracSJR=frac_SJR_preferred - frac_SJR_baseline,
+                             diffFracOutflow=meanFracOutflow_SJL_preferred - meanFracOutflow_SJL_baseline)
+
+p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow)) +
+    labs(x="", y="difference in outflow fraction (preferred - baseline)") +
+    theme_light()
+ggsave(file.path(outputDir, "diffOutflowFrac.png"), width=figWidth, height=figHeight)
+
+p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow)) +
+    facet_wrap(~year, ncol=3) + 
+    labs(x="", y="difference in outflow fraction (preferred - baseline)") +
+    theme_light()
+ggsave(file.path(outputDir, "diffOutflowFracByYear.png"), width=10, height=9)
+
+p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow, fill=factor(year))) +
+    labs(x="", y="difference in mean outflow fraction (preferred - baseline)", fill="year") +
+    theme_light()
+ggsave(file.path(outputDir, "diffOutflowFracByYear_sideBySide.png"), width=10, height=6)
+
+p <- ggplot(fracSJR, aes(x=diffFracOutflow, y=diffFracSJR)) +
+    geom_point(size=1, alpha=0.75, color="coral") +
+    stat_ellipse(level=0.95, geom="path", color="coral") +
+    geom_vline(xintercept=0) + geom_hline(yintercept=0) +
+    facet_wrap(~month, ncol=5) +
+    labs(x="difference in SJL outflow fraction (preferred - baseline)", y="difference in SJR junction routing fraction (preferred - baseline)") +
+    theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+ggsave(file.path(outputDir, "diffOutflowFrac_ellipse.png"), width=12, height=6)
