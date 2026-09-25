@@ -516,3 +516,56 @@ p <- ggplot(fracSJR, aes(x=diffFracOutflow, y=diffFracSJR, color=month)) +
     labs(x="difference in SJL outflow fraction (preferred - baseline)", y="difference in SJR junction routing fraction (preferred - baseline)") +
     theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
 ggsave(file.path(outputDir, "diffOutflowFrac_ellipse.png"), width=12, height=6)
+
+flow <- bind_rows(baselineFlow, preferredFlow) |> select(datetime, OH1, SJL, scenario) |> 
+    mutate(year=as.factor(year(datetime)), month=as.factor(month(datetime, label=T)), dayOfMonth=as.factor(mday(datetime)), julianDay=yday(datetime))
+
+thisYear <- 2015
+thisDays <- c(20, 21)
+
+for(thisMonth in c("Jun", "Sep")) {
+    # OH1
+    p <- ggplot(flow |> filter(month==thisMonth)) + 
+        geom_line(aes(x=datetime, y=OH1, color=scenario, group=scenario)) + 
+        facet_wrap(~year, ncol=5, scales="free_x") + 
+        labs(title=paste("Flow in Old River,", thisMonth)) +
+        theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    ggsave(file.path(outputDir, paste0("flow_OH1_", thisMonth, "_", thisYear, ".png")), width=12, height=6)
+    
+    p <- ggplot(flow |> filter(month==thisMonth, year==thisYear, dayOfMonth %in% thisDays)) + 
+        geom_line(aes(x=datetime, y=OH1, color=scenario, group=scenario)) + 
+        facet_wrap(~year, ncol=5, scales="free") + 
+        labs(title=paste("Flow in Old River,", thisMonth)) +
+        theme_light()
+    ggsave(file.path(outputDir, paste0("flow_OH1_", thisMonth, "_subset_", thisYear, ".png")), width=12, height=6)
+    
+    p <- ggplot(flow |> filter(month==thisMonth, dayOfMonth %in% thisDays)) + 
+        geom_line(aes(x=datetime, y=OH1, color=scenario, group=scenario)) + 
+        facet_wrap(~year, ncol=5, scales="free") + 
+        labs(title=paste("Flow in Old River,", thisMonth)) +
+        theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    ggsave(file.path(outputDir, paste0("flow_OH1_", thisMonth, ".png")), width=12, height=6)
+    
+    # SJL
+    p <- ggplot(flow |> filter(month==thisMonth)) +
+        geom_line(aes(x=datetime, y=SJL, color=scenario, group=scenario)) + 
+        facet_wrap(~year, ncol=5, scales="free_x") + 
+        labs(title=paste("Flow in mainstem San Joaquin River downstream of HOR,", thisMonth)) +
+        theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    ggsave(file.path(outputDir, paste0("flow_SJL_", thisMonth, "_", thisYear, ".png")), width=12, height=6)
+    
+    p <- ggplot(flow |> filter(month==thisMonth, year==thisYear, dayOfMonth %in% thisDays)) + 
+        geom_line(aes(x=datetime, y=SJL, color=scenario, group=scenario)) + 
+        facet_wrap(~year, ncol=5, scales="free") + 
+        labs(title=paste("Flow in mainstem San Joaquin River downstream of HOR,", thisMonth)) +
+        theme_light()
+    ggsave(file.path(outputDir, paste0("flow_SJL_", thisMonth, "_subset_", thisYear, ".png")), width=12, height=6)
+    
+    p <- ggplot(flow |> filter(month==thisMonth, dayOfMonth %in% thisDays)) + 
+        geom_line(aes(x=datetime, y=SJL, color=scenario, group=scenario)) + 
+        labs(title=paste("Flow in mainstem San Joaquin River downstream of HOR,", thisMonth)) +
+        facet_wrap(~year, ncol=5, scales="free") + 
+        theme_light() + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    ggsave(file.path(outputDir, paste0("flow_SJL_", thisMonth, ".png")), width=12, height=6)
+}
+
