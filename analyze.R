@@ -105,7 +105,8 @@ analyzeSalmon <- function(dF, loc) {
         sigMonths <- sigs |> filter(pWilcox<0.05)
         sigMonths <- sigMonths$month
         
-        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff, fill=month)) + 
+            scale_fill_brewer(palette="Paired") +
             annotate("text", x=sigMonths, y=max(thisDFwide$diff)*1.05, label="*", size=8, color="blue") +
             labs(title=paste(var, "comparison,", loc), x="", y=paste(varType, "difference (preferred - baseline)")) +
             theme_light()
@@ -115,8 +116,9 @@ analyzeSalmon <- function(dF, loc) {
         print(sigs)
         
         # Boxplots by year
-        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff)) + 
+        p <- ggplot(thisDFwide) + geom_boxplot(aes(x=month, y=diff, fill=month)) + 
             facet_wrap(~year, ncol=3) +
+            scale_fill_brewer(palette="Paired") +
             labs(title=paste(var, "comparison,", loc), x="", y=paste(varType, "difference (preferred - baseline)")) +
             theme_light()
         ggsave(file.path(thisOutputDir, paste0("boxPlot_byYear_", loc, "_", var, ".png")), width=10, height=9)
@@ -428,6 +430,7 @@ fracSJRlong <- bind_rows(fracSJR_baseline, fracSJR_preferred)
 
 p <- ggplot(fracSJRlong, aes(x=meanFracOutflow_SJL, y=frac_SJR)) + geom_point(aes(color=month, group=month), alpha=0.75) +
     geom_smooth(linewidth=0.75, alpha=0.1, method="loess", formula="y~x", color="black", fill="black") +
+    scale_color_brewer(palette="Paired") +
     labs(x="30-day rolling mean of SJL outflow fraction", y="SJR junction routing fraction") +
     theme_light()
 ggsave(file.path(outputDir, "fracSJR_vs_fracSJL.png"), width=figWidth, height=figHeight)
@@ -492,8 +495,9 @@ p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow)) +
     theme_light()
 ggsave(file.path(outputDir, "diffOutflowFrac.png"), width=figWidth, height=figHeight)
 
-p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow)) +
+p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow, fill=month)) +
     facet_wrap(~year, ncol=3) + 
+    scale_fill_brewer(palette="Paired") +
     labs(x="", y="difference in outflow fraction (preferred - baseline)") +
     theme_light()
 ggsave(file.path(outputDir, "diffOutflowFracByYear.png"), width=10, height=9)
@@ -503,9 +507,10 @@ p <- ggplot(fracSJR) + geom_boxplot(aes(x=month, y=diffFracOutflow, fill=factor(
     theme_light()
 ggsave(file.path(outputDir, "diffOutflowFracByYear_sideBySide.png"), width=10, height=6)
 
-p <- ggplot(fracSJR, aes(x=diffFracOutflow, y=diffFracSJR)) +
-    geom_point(size=1, alpha=0.75, color="coral") +
-    stat_ellipse(level=0.95, geom="path", color="coral") +
+p <- ggplot(fracSJR, aes(x=diffFracOutflow, y=diffFracSJR, color=month)) +
+    geom_point(size=1, alpha=0.75) +
+    stat_ellipse(level=0.95, geom="path") +
+    scale_color_brewer(palette="Paired") +
     geom_vline(xintercept=0) + geom_hline(yintercept=0) +
     facet_wrap(~month, ncol=5) +
     labs(x="difference in SJL outflow fraction (preferred - baseline)", y="difference in SJR junction routing fraction (preferred - baseline)") +
